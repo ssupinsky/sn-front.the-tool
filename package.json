@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "compile": "npx webpack",
     "start": "npm run compile && node dist/the-tool.js",
-    "start:debug": "npm run compile && node --inspect-brk dist/the-tool.js"
+    "start:debug": "npm run compile && node --inspect dist/the-tool.js"
   },
   "author": "",
   "license": "ISC",
