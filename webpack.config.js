@@ -10,5 +10,5 @@ module.exports = {
   },
   target: 'node',
   externals: [nodeExternals()],
-  devtool: 'eval-source-map',
+  devtool: 'source-map',
 };
