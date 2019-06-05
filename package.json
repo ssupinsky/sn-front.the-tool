@@ -6,12 +6,14 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "compile": "npx webpack",
-    "start": "npm run compile && node dist/the-tool.js"
+    "start": "npm run compile && node dist/the-tool.js",
+    "start:debug": "npm run compile && node --inspect dist/the-tool.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "node-git": "0.0.0",
+    "lodash": "^4.17.11",
+    "nodegit": "^0.24.3",
     "vorpal": "^1.12.0",
     "webpack-node-externals": "^1.7.2"
   },
