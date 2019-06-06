@@ -5,6 +5,7 @@ import { FOLDER_APP_PATH, SN_FRONT } from '../constants';
 import { readJSONAsync } from '../utils/fs';
 import { decorateAction as $a } from '../utils/vorpal';
 import { checkoutAndPull } from '../utils/git';
+import { log } from '../utils/console';
 
 const isGitDependency = value => value.startsWith('git@');
 const parseBranch = value => {
@@ -41,7 +42,10 @@ const startApp = args => {
     'npm run start',
     {
       cwd: FOLDER_APP_PATH,
-      env: args,
+      env: {
+        ...process.env,
+        ...args,
+      },
     },
   );
 
@@ -59,7 +63,8 @@ export const sync = app => app
   .allowUnknownOptions()
   .action($a(async args => {
     await prepareSubmoduleRepos();
-    await startApp(args);
+    log('\nPrepared submodule directories\n');
+    startApp(args);
   }))
   .cancel(() => {
     if (folderAppProcess) {
