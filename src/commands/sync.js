@@ -8,8 +8,7 @@ import { checkoutAndPull } from '../utils/git';
 const isGitDependency = value => value.startsWith('git@');
 const parseBranch = value => {
   const match = value.match(/#(\S+)$/);
-  debugger;
-  return (match || {})[1];
+  return match && match[1];
 };
 
 const getDependencies = async () => {
@@ -25,14 +24,17 @@ const getDependencies = async () => {
   return { gitDependencies, otherDependencies };
 };
 
+const prepareSubmoduleRepos = async () => {
+  const { gitDependencies } = await getDependencies();
+  return Promise.all(
+    Object.entries(gitDependencies).map(([repoName, dependencyValue]) =>
+      checkoutAndPull(`../${repoName}`, parseBranch(dependencyValue))
+    )
+  );
+};
+
 export const sync = app => app
   .command('sync')
   .action($a(async () => {
-    const { gitDependencies } = await getDependencies();
-
-    await Promise.all(
-      Object.entries(gitDependencies).map(([repoName, dependencyValue]) =>
-        checkoutAndPull(`../${repoName}`, parseBranch(dependencyValue))
-      )
-    );
+    await prepareSubmoduleRepos();
   }));
