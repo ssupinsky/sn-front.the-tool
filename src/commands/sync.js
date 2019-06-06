@@ -37,7 +37,7 @@ const prepareSubmoduleRepos = async () => {
 
 let folderAppProcess = null;
 
-const startApp = args => {
+const startApp = args => new Promise(resolve => {
   const child = childProcess.exec(
     'npm run start',
     {
@@ -56,18 +56,18 @@ const startApp = args => {
   });
 
   folderAppProcess = child;
-};
+});
 
 export const sync = app => app
   .command('sync')
   .allowUnknownOptions()
   .action($a(async args => {
-    await prepareSubmoduleRepos();
+    // await prepareSubmoduleRepos();
     log('\nPrepared submodule directories\n');
-    startApp(args);
+    await startApp(args);
   }))
   .cancel(() => {
     if (folderAppProcess) {
-      folderAppProcess.kill(15);
+      folderAppProcess.kill('SIGINT');
     }
   });
