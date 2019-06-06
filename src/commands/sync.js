@@ -1,5 +1,6 @@
 import { pickBy, omitBy } from 'lodash';
 import path from 'path';
+import childProcess from 'child_process';
 import { FOLDER_APP_PATH, SN_FRONT } from '../constants';
 import { readJSONAsync } from '../utils/fs';
 import { decorateAction as $a } from '../utils/vorpal';
@@ -33,8 +34,35 @@ const prepareSubmoduleRepos = async () => {
   );
 };
 
+let folderAppProcess = null;
+
+const startApp = args => {
+  const child = childProcess.exec(
+    'npm run start',
+    {
+      cwd: FOLDER_APP_PATH,
+      env: args,
+    },
+  );
+
+  child.stdout.pipe(process.stdout);
+  child.stderr.pipe(process.stderr);
+  child.on('exit', () => {
+    folderAppProcess = null;
+  });
+
+  folderAppProcess = child;
+};
+
 export const sync = app => app
   .command('sync')
-  .action($a(async () => {
+  .allowUnknownOptions()
+  .action($a(async args => {
     await prepareSubmoduleRepos();
-  }));
+    await startApp(args);
+  }))
+  .cancel(() => {
+    if (folderAppProcess) {
+      folderAppProcess.kill(15);
+    }
+  });
