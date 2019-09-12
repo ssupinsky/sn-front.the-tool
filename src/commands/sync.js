@@ -1,38 +1,39 @@
-import { pickBy, omitBy } from 'lodash';
+import { pickBy, fromPairs } from 'lodash';
 import path from 'path';
 import childProcess from 'child_process';
 import { FOLDER_APP_PATH, SN_FRONT } from '../constants';
 import { readJSONAsync } from '../utils/fs';
+import { noop } from '../utils/funcs';
 import { decorateAction as $a } from '../utils/vorpal';
-import { checkoutAndPull } from '../utils/git';
+import * as Git from '../utils/git';
 import { log } from '../utils/console';
 
-const isGitDependency = value => value.startsWith('git@');
 const parseBranch = value => {
   const match = value.match(/#(\S+)$/);
-  return match && match[1];
+  return match && match[1] ? match[1] : 'master';
 };
 
-const getDependencies = async () => {
+const branchesForDependencies = async () => {
   const packageInfo = await readJSONAsync(path.join(FOLDER_APP_PATH, 'package.json'));
-  const snFrontDependencies = pickBy(
+  const snFrontDeps = pickBy(
     packageInfo.devDependencies,
-    (value, key) => key.startsWith(SN_FRONT),
+    (depSource, depName) => depName.startsWith(SN_FRONT),
   );
 
-  const gitDependencies = pickBy(snFrontDependencies, isGitDependency);
-  const otherDependencies = omitBy(snFrontDependencies, isGitDependency);
-
-  return { gitDependencies, otherDependencies };
+  return fromPairs(
+    Object.entries(snFrontDeps)
+      .map(([depName, depSource]) => [depName, parseBranch(depSource)])
+  );
 };
 
 const prepareSubmoduleRepos = async () => {
-  const { gitDependencies } = await getDependencies();
+  const branchesMap = await branchesForDependencies();
+
   return Promise.all(
-    Object.entries(gitDependencies).map(([repoName, dependencyValue]) =>
-      checkoutAndPull(`../${repoName}`, parseBranch(dependencyValue))
+    Object.entries(branchesMap).map(([depName, branch]) =>
+      Git.definitelyCheckout(depName, `../${depName}`, branch)
     )
-  );
+  ).catch(noop);
 };
 
 let folderAppProcess = null;
@@ -62,9 +63,9 @@ export const sync = app => app
   .command('sync')
   .allowUnknownOptions()
   .action($a(async args => {
-    // await prepareSubmoduleRepos();
+    await prepareSubmoduleRepos();
     log('\nPrepared submodule directories\n');
-    await startApp(args);
+    // await startApp(args);
   }))
   .cancel(() => {
     if (folderAppProcess) {
