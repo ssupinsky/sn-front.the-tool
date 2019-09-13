@@ -35,6 +35,12 @@ export const pull = async repo => {
   return r;
 };
 
+const checkoutAndPull = (repo, branch) => (
+  pull(repo)
+    .then(() => checkout(repo, branch))
+    .then(pull)
+);
+
 const clone = (repoName, pathToRepo) => (
   log(`Cloning ${repoName} to ${pathToRepo}...`),
   NodeGit.Clone(
@@ -42,19 +48,16 @@ const clone = (repoName, pathToRepo) => (
     pathToRepo,
     { fetchOpts: { callbacks: authenticationCallbacks } },
   )
+    .then(() => log(`Succesfully cloned ${repoName} to ${pathToRepo}`))
+    .catch(error => log(`Failed cloning ${repoName} to ${pathToRepo}:\n`, error))
 );
 
-const openOrClone = async (repoName, pathToRepo) => (
-  fs.existsSync(pathToRepo)
-    ? NodeGit.Repository.open(pathToRepo)
-    : clone(repoName, pathToRepo)
-);
-
-export const definitelyCheckout = async (repoName, pathToRepo, branch) => {
-  const r = await openOrClone(repoName, pathToRepo);
-  return r;
-
-  return pull(r)
-    .then(() => checkout(r, branch))
-    .then(pull);
+const openWithClone = async (repoName, pathToRepo) => {
+  await (!fs.existsSync(pathToRepo) && clone(repoName, pathToRepo));
+  return NodeGit.Repository.open(pathToRepo);
 };
+
+export const definitelyCheckout = (repoName, pathToRepo, branch) => (
+  openWithClone(repoName, pathToRepo)
+    .then(r => checkoutAndPull(r, branch))
+);

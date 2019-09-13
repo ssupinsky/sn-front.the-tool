@@ -3,7 +3,7 @@ import path from 'path';
 import childProcess from 'child_process';
 import { FOLDER_APP_PATH, SN_FRONT } from '../constants';
 import { readJSONAsync } from '../utils/fs';
-import { noop } from '../utils/funcs';
+import { settleAll } from '../utils/promises/settle';
 import { decorateAction as $a } from '../utils/vorpal';
 import * as Git from '../utils/git';
 import { log } from '../utils/console';
@@ -29,11 +29,11 @@ const branchesForDependencies = async () => {
 const prepareSubmoduleRepos = async () => {
   const branchesMap = await branchesForDependencies();
 
-  return Promise.all(
+  return settleAll(
     Object.entries(branchesMap).map(([depName, branch]) =>
       Git.definitelyCheckout(depName, `../${depName}`, branch)
     )
-  ).catch(noop);
+  );
 };
 
 let folderAppProcess = null;
