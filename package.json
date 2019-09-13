@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "find-up": "^4.1.0",
     "lodash": "^4.17.11",
     "nodegit": "^0.24.3",
     "vorpal": "^1.12.0",

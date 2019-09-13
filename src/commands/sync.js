@@ -7,6 +7,7 @@ import { settleAll } from '../utils/promises/settle';
 import { decorateAction as $a } from '../utils/vorpal';
 import * as Git from '../utils/git';
 import { log } from '../utils/console';
+import { getConfig } from './showConfig/getConfig';
 
 const parseBranch = value => {
   const match = value.match(/#(\S+)$/);
@@ -14,10 +15,11 @@ const parseBranch = value => {
 };
 
 const branchesForDependencies = async () => {
+  const { dependencies: { exclude } } = await getConfig();
   const packageInfo = await readJSONAsync(path.join(FOLDER_APP_PATH, 'package.json'));
   const snFrontDeps = pickBy(
     packageInfo.devDependencies,
-    (depSource, depName) => depName.startsWith(SN_FRONT),
+    (depSource, depName) => !exclude.includes(depName) && depName.startsWith(SN_FRONT),
   );
 
   return fromPairs(
