@@ -35,12 +35,22 @@ const branchesForDependencies = async () => {
 
 const prepareSubmoduleRepos = async () => {
   const branchesMap = await branchesForDependencies();
+  const branchesMapAsEntries = Object.entries(branchesMap);
 
-  await settleAll(
-    Object.entries(branchesMap).map(([depName, branch]) =>
-      Git.definitelyCheckout(depName, `../${depName}`, branch)
-    )
-  );
+  try {
+    await settleAll(
+      branchesMapAsEntries.map(([depName, branch]) =>
+        Git.definitelyCheckout(depName, `../${depName}`, branch)
+      )
+    );
+  } catch (tasks) {
+    tasks.forEach(({ value }, i) => {
+      if (value instanceof Error) {
+        console.log(`\nError at ${branchesMapAsEntries[i][0]}:`);
+        console.error(value, '\n');
+      }
+    });
+  }
 
   return branchesMap;
 };
@@ -77,10 +87,11 @@ const updateWebpackConfig = async dependencies => {
   const exportLineIndex = configByLines.findIndex(x => x.includes('module.exports ='));
 
   const linkString = `require('sn-front-webpack-config/link')(config, {
-  ${dependencies.map(x => `'${x}': '../${x},'`).join('\n  ')}
+  ${dependencies.map(x => `'${x}': '../${x}',`).join('\n  ')}
 });
 `;
 
+  console.log('Writing webpack.config.js...');
   await writeFileAsync(
     webpackConfigFile,
     [

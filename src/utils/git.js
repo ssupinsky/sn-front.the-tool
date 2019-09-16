@@ -16,9 +16,22 @@ export const getCurrentBranchShorthand = repo => (
 
 export const checkout = async (repo, branch) => {
   const r = await repo;
-  await r.checkoutBranch(branch);
 
-  log(`Checked out branch ${branch} at ${r.path()}`);
+  try {
+    await r.checkoutBranch(branch);
+    log(`Checked out branch ${await getCurrentBranchShorthand(r)} at ${r.path()}`);
+  } catch (e) {
+    await r.setHeadDetached(await r.getReferenceCommit(`refs/remotes/origin/${branch}`));
+    const branchRef = await r.createBranch(
+      branch,
+      await r.getHeadCommit(),
+      0,
+      r.defaultSignature(),
+      `Created ${branch} at ${r.path()}`
+    );
+    await NodeGit.Branch.setUpstream(branchRef, `origin/${branch}`);
+    await checkout(r, branch);
+  }
 
   return r;
 };
@@ -27,12 +40,14 @@ export const pull = async repo => {
   const r = await repo;
   const branch = await getCurrentBranchShorthand(repo);
 
-  await r.fetchAll({ callbacks: authenticationCallbacks });
-  await r.mergeBranches(branch, `origin/${branch}`);
+  if (branch !== 'HEAD') {
+    await r.fetchAll({ callbacks: authenticationCallbacks });
+    await r.mergeBranches(branch, `origin/${branch}`);
 
-  log(`Performed pull at ${r.path()}`);
+    log(`Performed pull at ${r.path()}`);
 
-  return r;
+    return r;
+  }
 };
 
 const checkoutAndPull = (repo, branch) => (
