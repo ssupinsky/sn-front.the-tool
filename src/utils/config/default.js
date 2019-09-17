@@ -3,6 +3,7 @@ export const CONFIG_DEFAULT = {
     exclude: [
       'sn-front-static',
       'sn-front.support-app',
+      'sn-front.scroll-bars',
     ],
   },
 };
