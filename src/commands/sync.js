@@ -79,12 +79,33 @@ let folderAppProcess = null;
 //   folderAppProcess = child;
 // });
 
+const clearLink = configByLines => {
+  const startIndex = configByLines.findIndex(
+    x => x.includes('require(\'sn-front-webpack-config/link\')')
+  );
+
+  if (startIndex !== -1) {
+    const endIndex = configByLines.findIndex((x, i) => i > startIndex && x.includes('})'));
+    return clearLink([
+      ...configByLines.slice(0, startIndex),
+      ...configByLines.slice(endIndex + 1),
+    ]);
+  }
+
+  return configByLines;
+};
+
 const updateWebpackConfig = async dependencies => {
   const webpackConfigFile = `${FOLDER_APP_PATH}/webpack.config.js`;
   const configByLines = (await readFileAsync(webpackConfigFile))
     .toString()
     .split('\n');
-  const exportLineIndex = configByLines.findIndex(x => x.includes('module.exports ='));
+  const configByLinesNoLink = clearLink(configByLines);
+
+  const exportLineIndex = configByLinesNoLink.findIndex(
+    x => x.includes('module.exports =')
+  );
+
 
   const linkString = `require('sn-front-webpack-config/link')(config, {
   ${dependencies.map(x => `'${x}': '../${x}',`).join('\n  ')}
@@ -95,10 +116,12 @@ const updateWebpackConfig = async dependencies => {
   await writeFileAsync(
     webpackConfigFile,
     [
-      ...configByLines.slice(0, exportLineIndex),
+      ...configByLinesNoLink.slice(0, exportLineIndex),
       linkString,
-      ...configByLines.slice(exportLineIndex),
-    ].join('\n'),
+      ...configByLinesNoLink.slice(exportLineIndex),
+    ]
+      .join('\n')
+      .replace(/\n{3,}/, '\n\n')
   );
 };
 
